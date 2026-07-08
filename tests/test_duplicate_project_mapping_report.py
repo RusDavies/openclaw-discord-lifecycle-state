@@ -26,7 +26,7 @@ class DuplicateProjectMappingReportTests(unittest.TestCase):
             ]
         )
 
-        report = duplicate_report.build_report(index_path)
+        report = duplicate_report.build_report(index_path, resolution_config_path=None)
         by_project = {item.project_folder: item for item in report}
 
         self.assertEqual(by_project["projects/alpha"].classification, "duplicate-index-row")
@@ -52,12 +52,56 @@ class DuplicateProjectMappingReportTests(unittest.TestCase):
             ),
         ]
 
-        data = duplicate_report.json_data(duplicates, index_path=PROJECT_ROOT / "index.json")
+        data = duplicate_report.json_data(
+            duplicates,
+            index_path=PROJECT_ROOT / "index.json",
+            resolution_config_path=None,
+        )
 
         self.assertEqual(data["summary"]["duplicate_project_folders"], 2)
         self.assertEqual(data["summary"]["duplicate_mapping_rows"], 4)
         self.assertEqual(data["summary"]["multi_channel_project_folders"], 1)
         self.assertEqual(data["summary"]["duplicate_index_row_groups"], 1)
+        self.assertEqual(data["summary"]["resolved_duplicate_groups"], 0)
+        self.assertEqual(data["summary"]["unresolved_duplicate_groups"], 1)
+        self.assertEqual(data["summary"]["index_hygiene_duplicate_groups"], 1)
+
+    def test_configured_canonical_channel_marks_duplicate_resolved(self) -> None:
+        index_path = self.index(
+            [
+                self.mapping("1", "projects/alpha", ["#alpha"]),
+                self.mapping("2", "projects/alpha", ["#alpha-dev"]),
+            ]
+        )
+        resolutions_path = self.resolutions(
+            [
+                {
+                    "project_folder": "projects/alpha",
+                    "canonical_channel_id": "1",
+                    "decision_reason": "main channel",
+                }
+            ]
+        )
+
+        report = duplicate_report.build_report(
+            index_path,
+            resolution_config_path=resolutions_path,
+        )
+
+        self.assertEqual(report[0].resolution_status, "resolved")
+        self.assertEqual(report[0].recommendation, "Use the configured canonical channel for lifecycle seeding.")
+
+    def test_invalid_configured_canonical_channel_is_flagged(self) -> None:
+        item = duplicate_report.DuplicateProjectMapping(
+            project_folder="projects/alpha",
+            entries=(
+                duplicate_report.MappingEntry("1", ("#alpha",), (), ""),
+                duplicate_report.MappingEntry("2", ("#alpha-dev",), (), ""),
+            ),
+            canonical_channel_id="3",
+        )
+
+        self.assertEqual(item.resolution_status, "invalid-canonical-channel")
 
     def mapping(self, channel_id: str, project_folder: str, labels: list[str]) -> dict[str, object]:
         return {
@@ -79,6 +123,24 @@ class DuplicateProjectMappingReportTests(unittest.TestCase):
         self.addCleanup(lambda path=handle.name: Path(path).unlink(missing_ok=True))
         with handle:
             json.dump({"entries": entries}, handle)
+        return Path(handle.name)
+
+    def resolutions(self, entries: list[dict[str, object]]) -> Path:
+        handle = tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            suffix=".json",
+            delete=False,
+        )
+        self.addCleanup(lambda path=handle.name: Path(path).unlink(missing_ok=True))
+        with handle:
+            json.dump(
+                {
+                    "schema": "openclaw.lifecycle.canonical_project_channels.v1",
+                    "canonical_project_channels": entries,
+                },
+                handle,
+            )
         return Path(handle.name)
 
 
