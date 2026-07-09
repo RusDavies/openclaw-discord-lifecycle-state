@@ -1,7 +1,15 @@
 import unittest
 
-from openclaw_lifecycle import LifecycleCommandError, StateSetCommand
-from openclaw_lifecycle.commands import parse_state_set_command
+from openclaw_lifecycle import (
+    LifecycleCommandError,
+    StateSetCommand,
+    StateStatusCommand,
+)
+from openclaw_lifecycle.commands import (
+    parse_lifecycle_command,
+    parse_state_set_command,
+    parse_state_status_command,
+)
 
 
 class StateSetCommandParsingTests(unittest.TestCase):
@@ -67,6 +75,60 @@ class StateSetCommandParsingTests(unittest.TestCase):
     def test_parse_rejects_non_string_command(self):
         with self.assertRaises(LifecycleCommandError):
             parse_state_set_command(None)  # type: ignore[arg-type]
+
+
+class StateStatusCommandParsingTests(unittest.TestCase):
+    def test_parse_bare_state_as_status_command(self):
+        self.assertEqual(parse_state_status_command("state"), StateStatusCommand())
+
+    def test_parse_state_status_command(self):
+        self.assertEqual(
+            parse_state_status_command("state status"),
+            StateStatusCommand(),
+        )
+
+    def test_parse_status_command_tolerates_case_and_separator(self):
+        self.assertEqual(
+            parse_state_status_command("  State: STATUS?  "),
+            StateStatusCommand(),
+        )
+
+    def test_parse_status_command_tolerates_newline_between_words(self):
+        self.assertEqual(
+            parse_state_status_command("state\nstatus"),
+            StateStatusCommand(),
+        )
+
+    def test_parse_status_command_tolerates_markdown_wrapped_status(self):
+        self.assertEqual(
+            parse_state_status_command("state `status`;"),
+            StateStatusCommand(),
+        )
+
+    def test_parse_status_rejects_state_write_command(self):
+        with self.assertRaises(LifecycleCommandError):
+            parse_state_status_command("state active")
+
+    def test_parse_status_rejects_wrong_command(self):
+        with self.assertRaises(LifecycleCommandError):
+            parse_state_status_command("status")
+
+
+class LifecycleCommandParsingTests(unittest.TestCase):
+    def test_dispatcher_parses_status_command(self):
+        self.assertEqual(parse_lifecycle_command("state"), StateStatusCommand())
+
+    def test_dispatcher_parses_explicit_status_command(self):
+        self.assertEqual(
+            parse_lifecycle_command("state status"),
+            StateStatusCommand(),
+        )
+
+    def test_dispatcher_parses_state_set_command(self):
+        self.assertEqual(
+            parse_lifecycle_command("state blocked waiting"),
+            StateSetCommand(state="blocked", reason="waiting"),
+        )
 
 
 if __name__ == "__main__":
