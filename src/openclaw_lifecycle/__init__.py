@@ -1,5 +1,10 @@
 """OpenClaw lifecycle-state helpers."""
 
+from .commands import (
+    LifecycleCommandError,
+    StateSetCommand,
+    parse_state_set_command,
+)
 from .state import (
     ALLOWED_STATES,
     LifecycleStateError,
@@ -10,8 +15,11 @@ from .state import (
 
 __all__ = [
     "ALLOWED_STATES",
+    "LifecycleCommandError",
     "LifecycleStateError",
+    "StateSetCommand",
     "allowed_states_text",
     "is_valid_state",
+    "parse_state_set_command",
     "validate_state",
 ]
