@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openclaw.local/schemas/channel-lifecycle-state.schema.json",
+  "title": "OpenClaw Channel-Local Lifecycle State Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "updated_at",
+    "channels"
+  ],
+  "properties": {
+    "schema": {
+      "const": "openclaw.lifecycle.channel_registry.v1"
+    },
+    "version": {
+      "const": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "channels": {
+      "type": "object",
+      "description": "Lifecycle state entries keyed by Discord channel id.",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[0-9]{17,20}$": {
+          "$ref": "#/$defs/channel_state"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "snowflake": {
+      "type": "string",
+      "pattern": "^[0-9]{17,20}$"
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "blocked",
+        "pending-approval",
+        "ktlo",
+        "spike",
+        "archived"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "discord-command",
+        "manual-edit",
+        "migration",
+        "agent-repair"
+      ]
+    },
+    "channel_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "state",
+        "since",
+        "updated_at",
+        "updated_by",
+        "reason",
+        "source"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/snowflake"
+        },
+        "state": {
+          "$ref": "#/$defs/lifecycle_state"
+        },
+        "since": {
+          "type": "string",
+          "format": "date"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "guild_id": {
+          "$ref": "#/$defs/snowflake"
+        },
+        "guild_name": {
+          "type": "string"
+        },
+        "channel_name": {
+          "type": "string"
+        },
+        "category_id": {
+          "$ref": "#/$defs/snowflake"
+        },
+        "category_name": {
+          "type": "string"
+        },
+        "next_review": {
+          "type": "string",
+          "format": "date"
+        },
+        "blocked_on": {
+          "type": "string"
+        },
+        "mapping_status": {
+          "type": "string",
+          "enum": [
+            "unmapped",
+            "mapped-shadow"
+          ],
+          "default": "unmapped"
+        },
+        "mapped_project": {
+          "type": "string"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/history_entry"
+          }
+        }
+      }
+    },
+    "history_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "changed_at",
+        "changed_by",
+        "reason",
+        "source"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/lifecycle_state"
+        },
+        "changed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "changed_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    }
+  }
+}
