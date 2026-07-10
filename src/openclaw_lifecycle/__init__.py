@@ -19,6 +19,10 @@ from .context import (
     CurrentChannelContext,
     resolve_current_channel_context,
 )
+from .discord_response import (
+    LifecycleResponseError,
+    format_state_write_confirmation,
+)
 from .mapping import (
     ProjectMappingError,
     SafeProjectMapping,
@@ -55,6 +59,7 @@ __all__ = [
     "CurrentChannelContext",
     "LifecycleCommand",
     "LifecycleCommandError",
+    "LifecycleResponseError",
     "LifecycleStateError",
     "MappedProjectStateError",
     "MappedProjectWriteOptions",
@@ -63,6 +68,7 @@ __all__ = [
     "StateSetCommand",
     "StateStatusCommand",
     "allowed_states_text",
+    "format_state_write_confirmation",
     "is_valid_state",
     "parse_lifecycle_command",
     "parse_state_set_command",
