@@ -1,9 +1,12 @@
 import unittest
 
 from openclaw_lifecycle import (
+    LifecycleCommandError,
     LifecycleResponseError,
+    format_lifecycle_command_error,
     format_state_status_response,
     format_state_write_confirmation,
+    parse_state_set_command,
 )
 
 
@@ -223,6 +226,41 @@ class DiscordResponseFormattingTests(unittest.TestCase):
                     },
                 }
             )
+
+    def test_formats_invalid_state_error_with_allowed_states(self):
+        try:
+            parse_state_set_command("state waiting on vendor")
+        except LifecycleCommandError as error:
+            message = format_lifecycle_command_error(error)
+        else:
+            self.fail("Expected invalid lifecycle state")
+
+        self.assertEqual(
+            message,
+            "\n".join(
+                [
+                    "Invalid lifecycle state 'waiting'.",
+                    "Allowed states: `active`, `paused`, `blocked`, "
+                    "`pending-approval`, `ktlo`, `spike`, `archived`",
+                ]
+            ),
+        )
+
+    def test_formats_missing_state_error_with_allowed_states(self):
+        message = format_lifecycle_command_error(
+            LifecycleCommandError("Expected lifecycle state after `state`")
+        )
+
+        self.assertEqual(
+            message,
+            "\n".join(
+                [
+                    "Expected lifecycle state after `state`",
+                    "Allowed states: `active`, `paused`, `blocked`, "
+                    "`pending-approval`, `ktlo`, `spike`, `archived`",
+                ]
+            ),
+        )
 
 
 if __name__ == "__main__":
