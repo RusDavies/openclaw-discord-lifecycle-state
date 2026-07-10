@@ -14,6 +14,11 @@ from .context import (
     CurrentChannelContext,
     resolve_current_channel_context,
 )
+from .mapping import (
+    ProjectMappingError,
+    SafeProjectMapping,
+    resolve_safe_project_mapping,
+)
 from .state import (
     ALLOWED_STATES,
     LifecycleStateError,
@@ -29,6 +34,8 @@ __all__ = [
     "LifecycleCommand",
     "LifecycleCommandError",
     "LifecycleStateError",
+    "ProjectMappingError",
+    "SafeProjectMapping",
     "StateSetCommand",
     "StateStatusCommand",
     "allowed_states_text",
@@ -37,5 +44,6 @@ __all__ = [
     "parse_state_set_command",
     "parse_state_status_command",
     "resolve_current_channel_context",
+    "resolve_safe_project_mapping",
     "validate_state",
 ]
