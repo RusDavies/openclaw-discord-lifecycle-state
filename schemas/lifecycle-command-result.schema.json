@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openclaw.local/schemas/lifecycle-command-result.schema.json",
+  "title": "OpenClaw Lifecycle Command Result Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "ok",
+    "operation",
+    "source_type",
+    "command",
+    "channel",
+    "target_paths",
+    "before",
+    "after",
+    "verification",
+    "commit_required",
+    "dry_run",
+    "warnings",
+    "errors",
+    "proposed_external_actions"
+  ],
+  "properties": {
+    "schema": {
+      "const": "openclaw.lifecycle.command_result.v1"
+    },
+    "version": {
+      "const": 1
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "write-state",
+        "read-status"
+      ]
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "mapped-project",
+        "channel-local-registry",
+        "none"
+      ]
+    },
+    "command": {
+      "$ref": "#/$defs/command"
+    },
+    "channel": {
+      "$ref": "#/$defs/channel_context"
+    },
+    "project": {
+      "$ref": "#/$defs/project_context"
+    },
+    "registry": {
+      "$ref": "#/$defs/registry_context"
+    },
+    "target_paths": {
+      "type": "array",
+      "description": "Filesystem paths read or written by the command.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "before": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/lifecycle_state_snapshot"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "after": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/lifecycle_state_snapshot"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "verification": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/verification_check"
+      }
+    },
+    "commit_required": {
+      "type": "boolean"
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "proposed_external_actions": {
+      "type": "array",
+      "description": "Proposed Discord or other external actions; storage code must not execute them.",
+      "items": {
+        "$ref": "#/$defs/proposed_external_action"
+      }
+    }
+  },
+  "$defs": {
+    "snowflake": {
+      "type": "string",
+      "pattern": "^[0-9]{17,20}$"
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "blocked",
+        "pending-approval",
+        "ktlo",
+        "spike",
+        "archived"
+      ]
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "raw"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "set-state",
+            "status"
+          ]
+        },
+        "raw": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/lifecycle_state"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "reason_supplied": {
+          "type": "boolean"
+        }
+      }
+    },
+    "channel_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/snowflake"
+        },
+        "channel_name": {
+          "type": "string"
+        },
+        "guild_id": {
+          "$ref": "#/$defs/snowflake"
+        },
+        "guild_name": {
+          "type": "string"
+        },
+        "category_id": {
+          "$ref": "#/$defs/snowflake"
+        },
+        "category_name": {
+          "type": "string"
+        }
+      }
+    },
+    "project_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "folder",
+        "state_file",
+        "git_top_level",
+        "git_boundary_ok"
+      ],
+      "properties": {
+        "folder": {
+          "type": "string"
+        },
+        "state_file": {
+          "type": "string"
+        },
+        "git_top_level": {
+          "type": "string"
+        },
+        "git_boundary_ok": {
+          "type": "boolean"
+        },
+        "git_clean": {
+          "type": "boolean"
+        }
+      }
+    },
+    "registry_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "entry_key": {
+          "$ref": "#/$defs/snowflake"
+        }
+      }
+    },
+    "lifecycle_state_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "reason",
+        "source"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/lifecycle_state"
+        },
+        "since": {
+          "type": "string",
+          "format": "date"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "discord-command",
+            "manual-edit",
+            "migration",
+            "agent-repair"
+          ]
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_by": {
+          "type": "string"
+        },
+        "channel_id": {
+          "$ref": "#/$defs/snowflake"
+        },
+        "next_review": {
+          "type": "string",
+          "format": "date"
+        },
+        "blocked_on": {
+          "type": "string"
+        },
+        "mapped_project": {
+          "type": "string"
+        },
+        "canonical_slug": {
+          "type": "string"
+        }
+      }
+    },
+    "verification_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check",
+        "ok"
+      ],
+      "properties": {
+        "check": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    },
+    "proposed_external_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "required"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "discord-message",
+            "discord-channel-edit",
+            "discord-pin",
+            "none"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}
