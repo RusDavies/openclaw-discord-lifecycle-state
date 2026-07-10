@@ -3,11 +3,28 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from typing import Any
+
+from .state import ALLOWED_STATES
 
 
 class LifecycleResponseError(ValueError):
     """Raised when a lifecycle result packet cannot be formatted."""
+
+
+def format_lifecycle_command_error(error: Exception) -> str:
+    """Format a concise visible response for lifecycle command errors."""
+
+    message = str(error).strip() or "Lifecycle command failed."
+    invalid_state = _invalid_state_from_message(message)
+    if invalid_state:
+        lines = [f"Invalid lifecycle state {invalid_state}."]
+    else:
+        lines = [message]
+
+    lines.append(f"Allowed states: {_allowed_states_markdown()}")
+    return "\n".join(lines)
 
 
 def format_state_write_confirmation(result: Mapping[str, Any]) -> str:
@@ -97,6 +114,15 @@ def _storage_text(result: Mapping[str, Any]) -> str:
     if source_type == "channel-local-registry":
         return "channel-local registry"
     return ""
+
+
+def _invalid_state_from_message(message: str) -> str:
+    match = re.search(r"Invalid lifecycle state (?P<state>.+?);", message)
+    return match.group("state") if match else ""
+
+
+def _allowed_states_markdown() -> str:
+    return ", ".join(f"`{state}`" for state in ALLOWED_STATES)
 
 
 def _append_warnings(lines: list[str], result: Mapping[str, Any]) -> str:
