@@ -50,6 +50,11 @@ from .state import (
     is_valid_state,
     validate_state,
 )
+from .workflow import (
+    LifecycleWorkflowError,
+    LifecycleWorkflowOptions,
+    handle_lifecycle_command,
+)
 
 __all__ = [
     "ALLOWED_STATES",
@@ -63,6 +68,8 @@ __all__ = [
     "LifecycleCommandError",
     "LifecycleResponseError",
     "LifecycleStateError",
+    "LifecycleWorkflowError",
+    "LifecycleWorkflowOptions",
     "MappedProjectStateError",
     "MappedProjectWriteOptions",
     "ProjectMappingError",
@@ -73,6 +80,7 @@ __all__ = [
     "format_lifecycle_command_error",
     "format_state_status_response",
     "format_state_write_confirmation",
+    "handle_lifecycle_command",
     "is_valid_state",
     "parse_lifecycle_command",
     "parse_state_set_command",
