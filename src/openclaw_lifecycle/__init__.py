@@ -21,6 +21,7 @@ from .context import (
 )
 from .discord_response import (
     LifecycleResponseError,
+    format_state_status_response,
     format_state_write_confirmation,
 )
 from .mapping import (
@@ -68,6 +69,7 @@ __all__ = [
     "StateSetCommand",
     "StateStatusCommand",
     "allowed_states_text",
+    "format_state_status_response",
     "format_state_write_confirmation",
     "is_valid_state",
     "parse_lifecycle_command",
