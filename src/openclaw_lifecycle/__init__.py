@@ -29,6 +29,11 @@ from .project_state import (
     MappedProjectWriteOptions,
     write_mapped_project_lifecycle_state,
 )
+from .registry_state import (
+    ChannelRegistryStateError,
+    ChannelRegistryWriteOptions,
+    write_channel_registry_lifecycle_state,
+)
 from .state import (
     ALLOWED_STATES,
     LifecycleStateError,
@@ -42,6 +47,8 @@ __all__ = [
     "ChannelContextError",
     "ChannelLookupPacketError",
     "ChannelLookupResolution",
+    "ChannelRegistryStateError",
+    "ChannelRegistryWriteOptions",
     "CurrentChannelContext",
     "LifecycleCommand",
     "LifecycleCommandError",
@@ -61,5 +68,6 @@ __all__ = [
     "resolve_current_channel_context",
     "resolve_safe_project_mapping",
     "validate_state",
+    "write_channel_registry_lifecycle_state",
     "write_mapped_project_lifecycle_state",
 ]
