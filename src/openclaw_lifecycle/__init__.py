@@ -1,5 +1,10 @@
 """OpenClaw lifecycle-state helpers."""
 
+from .adapter import (
+    ChannelLookupPacketError,
+    ChannelLookupResolution,
+    resolve_channel_lookup_packet,
+)
 from .commands import (
     LifecycleCommand,
     LifecycleCommandError,
@@ -30,6 +35,8 @@ from .state import (
 __all__ = [
     "ALLOWED_STATES",
     "ChannelContextError",
+    "ChannelLookupPacketError",
+    "ChannelLookupResolution",
     "CurrentChannelContext",
     "LifecycleCommand",
     "LifecycleCommandError",
@@ -43,6 +50,7 @@ __all__ = [
     "parse_lifecycle_command",
     "parse_state_set_command",
     "parse_state_status_command",
+    "resolve_channel_lookup_packet",
     "resolve_current_channel_context",
     "resolve_safe_project_mapping",
     "validate_state",
