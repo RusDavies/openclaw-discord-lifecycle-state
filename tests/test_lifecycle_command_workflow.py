@@ -419,6 +419,74 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
 
             self.assertIn("expected", str(caught.exception))
 
+    def test_mapped_write_command_prefers_project_when_registry_state_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._init_project(tmp, "example")
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+            self._write_registry(registry_path, state="paused", reason="registry state")
+
+            result = handle_lifecycle_command(
+                "state active current implementation work",
+                self._channel(),
+                self._mapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                ),
+            )
+
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            registry_entry = registry["channels"]["111111111111111111"]
+            self.assertEqual(result["source_type"], "mapped-project")
+            self.assertEqual(result["after"]["state"], "active")
+            self.assertIn(
+                "state: active",
+                (project / "LIFECYCLE_STATE.md").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(registry_entry["state"], "paused")
+            self.assertEqual(registry_entry["reason"], "registry state")
+
+    def test_mapped_status_command_prefers_project_and_warns_when_registry_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._init_project(tmp, "example")
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+            self._write_state_file(project, "blocked", "mapped state")
+            self._write_registry(registry_path, state="paused", reason="registry state")
+
+            result = handle_lifecycle_command(
+                "state",
+                self._channel(),
+                self._mapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(result["source_type"], "mapped-project")
+            self.assertEqual(result["after"]["state"], "blocked")
+            self.assertEqual(result["after"]["reason"], "mapped state")
+            self.assertEqual(len(result["target_paths"]), 2)
+            self.assertIn("mapped project state takes precedence", result["warnings"][0])
+            self.assertEqual(
+                format_state_status_response(result),
+                "\n".join(
+                    [
+                        "State: `blocked`",
+                        "Reason: mapped state",
+                        "Since: 2026-07-10",
+                        "Updated: 2026-07-10T12:00:00+00:00",
+                        "Source: mapped project `LIFECYCLE_STATE.md`",
+                        "Warning: Channel-local registry state also exists; "
+                        "mapped project state takes precedence.",
+                    ]
+                ),
+            )
+
     def _init_project(self, tmp: str, name: str) -> Path:
         project = Path(tmp) / "projects" / name
         project.mkdir(parents=True)
