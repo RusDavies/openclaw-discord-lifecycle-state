@@ -24,6 +24,11 @@ from .mapping import (
     SafeProjectMapping,
     resolve_safe_project_mapping,
 )
+from .project_state import (
+    MappedProjectStateError,
+    MappedProjectWriteOptions,
+    write_mapped_project_lifecycle_state,
+)
 from .state import (
     ALLOWED_STATES,
     LifecycleStateError,
@@ -41,6 +46,8 @@ __all__ = [
     "LifecycleCommand",
     "LifecycleCommandError",
     "LifecycleStateError",
+    "MappedProjectStateError",
+    "MappedProjectWriteOptions",
     "ProjectMappingError",
     "SafeProjectMapping",
     "StateSetCommand",
@@ -54,4 +61,5 @@ __all__ = [
     "resolve_current_channel_context",
     "resolve_safe_project_mapping",
     "validate_state",
+    "write_mapped_project_lifecycle_state",
 ]
