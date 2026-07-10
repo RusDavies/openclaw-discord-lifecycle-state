@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .commands import StateSetCommand
+from .commands import StateSetCommand, StateStatusCommand
 from .context import CurrentChannelContext
 from .state import validate_state
 
@@ -91,6 +91,55 @@ def write_channel_registry_lifecycle_state(
         ],
         "commit_required": False,
         "dry_run": options.dry_run,
+        "warnings": [],
+        "errors": [],
+        "proposed_external_actions": [],
+    }
+
+
+def read_channel_registry_lifecycle_state(
+    channel: CurrentChannelContext,
+    registry_path: str | Path,
+    command: StateStatusCommand | None = None,
+    *,
+    raw_command: str = "",
+) -> dict[str, Any]:
+    """Read lifecycle state for an unmapped channel registry entry."""
+
+    path = Path(registry_path)
+    registry = _read_registry(path)
+    channels = registry.setdefault("channels", {})
+    if not isinstance(channels, dict):
+        raise ChannelRegistryStateError("Registry channels field must be an object")
+
+    entry = _channel_entry(channels.get(channel.channel_id))
+    after = _snapshot(entry)
+
+    return {
+        "schema": _COMMAND_RESULT_SCHEMA,
+        "version": 1,
+        "ok": True,
+        "operation": "read-status",
+        "source_type": "channel-local-registry",
+        "command": {
+            "type": "status",
+            "raw": raw_command,
+        },
+        "channel": _channel_packet(channel),
+        "registry": {
+            "path": str(path),
+            "entry_key": channel.channel_id,
+        },
+        "target_paths": [str(path)],
+        "before": None,
+        "after": after,
+        "verification": [
+            {"check": "channel_id_present", "ok": bool(channel.channel_id)},
+            {"check": "registry_path_available", "ok": path.exists()},
+            {"check": "state_read", "ok": after is not None},
+        ],
+        "commit_required": False,
+        "dry_run": False,
         "warnings": [],
         "errors": [],
         "proposed_external_actions": [],

@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
-from .commands import StateSetCommand
+from .commands import StateSetCommand, StateStatusCommand
 from .context import CurrentChannelContext
 from .mapping import SafeProjectMapping
 from .state import validate_state
@@ -114,6 +114,69 @@ def write_mapped_project_lifecycle_state(
         "verification": verification,
         "commit_required": not options.dry_run,
         "dry_run": options.dry_run,
+        "warnings": [],
+        "errors": [],
+        "proposed_external_actions": [],
+    }
+
+
+def read_mapped_project_lifecycle_state(
+    channel: CurrentChannelContext,
+    mapping: SafeProjectMapping,
+    command: StateStatusCommand | None = None,
+    *,
+    raw_command: str = "",
+) -> dict[str, Any]:
+    """Read `LIFECYCLE_STATE.md` for a safely mapped project channel."""
+
+    if mapping.channel_id != channel.channel_id:
+        raise MappedProjectStateError(
+            f"Mapping channel id does not match current channel {channel.channel_id!r}"
+        )
+
+    project_path = Path(mapping.project_path).resolve()
+    state_file = project_path / "LIFECYCLE_STATE.md"
+
+    verification = [_verification("mapped_project_exists", project_path.is_dir())]
+    if not project_path.is_dir():
+        raise MappedProjectStateError(f"Mapped project folder does not exist: {project_path}")
+
+    git_top_level = _git_top_level(project_path)
+    git_boundary_ok = git_top_level == project_path
+    verification.append(_verification("git_top_level_is_project", git_boundary_ok))
+    if not git_boundary_ok:
+        raise MappedProjectStateError(
+            f"Mapped project git top-level is {git_top_level}, expected {project_path}"
+        )
+
+    fields = _read_state_file(state_file)
+    after = _snapshot(fields)
+    verification.append(_verification("state_read", state_file.exists()))
+
+    return {
+        "schema": _SCHEMA,
+        "version": 1,
+        "ok": True,
+        "operation": "read-status",
+        "source_type": "mapped-project",
+        "command": {
+            "type": "status",
+            "raw": raw_command,
+        },
+        "channel": _channel_packet(channel),
+        "project": {
+            "folder": str(project_path),
+            "state_file": str(state_file),
+            "git_top_level": str(git_top_level),
+            "git_boundary_ok": git_boundary_ok,
+            "git_clean": _git_clean(project_path),
+        },
+        "target_paths": [str(state_file)],
+        "before": None,
+        "after": after,
+        "verification": verification,
+        "commit_required": False,
+        "dry_run": False,
         "warnings": [],
         "errors": [],
         "proposed_external_actions": [],
