@@ -50,6 +50,46 @@ def format_state_write_confirmation(result: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_state_status_response(result: Mapping[str, Any]) -> str:
+    """Format a concise visible response for a lifecycle status read."""
+
+    if result.get("operation") != "read-status":
+        raise LifecycleResponseError("Expected a read-status result packet")
+    if result.get("ok") is not True:
+        raise LifecycleResponseError("Cannot format a successful status response for a failed result")
+
+    storage = _storage_text(result)
+    after = result.get("after")
+    if after is None:
+        lines = ["No lifecycle state recorded yet."]
+        if storage:
+            lines.append(f"Checked: {storage}")
+        return _append_warnings(lines, result)
+
+    if not isinstance(after, Mapping):
+        raise LifecycleResponseError("Status result packet after field must be an object or null")
+
+    state = _required_text(after, "state")
+    lines = [f"State: `{state}`"]
+
+    reason = _optional_text(after, "reason")
+    if reason:
+        lines.append(f"Reason: {reason}")
+
+    since = _optional_text(after, "since")
+    if since:
+        lines.append(f"Since: {since}")
+
+    updated_at = _optional_text(after, "updated_at")
+    if updated_at:
+        lines.append(f"Updated: {updated_at}")
+
+    if storage:
+        lines.append(f"Source: {storage}")
+
+    return _append_warnings(lines, result)
+
+
 def _storage_text(result: Mapping[str, Any]) -> str:
     source_type = result.get("source_type")
     if source_type == "mapped-project":
@@ -57,6 +97,12 @@ def _storage_text(result: Mapping[str, Any]) -> str:
     if source_type == "channel-local-registry":
         return "channel-local registry"
     return ""
+
+
+def _append_warnings(lines: list[str], result: Mapping[str, Any]) -> str:
+    for warning in _string_list(result.get("warnings")):
+        lines.append(f"Warning: {warning}")
+    return "\n".join(lines)
 
 
 def _required_text(mapping: Mapping[str, Any], key: str) -> str:
