@@ -279,6 +279,97 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                 ),
             )
 
+    def test_repeated_mapped_state_command_reports_unchanged_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._init_project(tmp, "example")
+            options = LifecycleWorkflowOptions(
+                actor="Example Operator",
+                now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                registry_path=Path(tmp) / "data" / "channel-lifecycle-state.json",
+                workspace_root=tmp,
+            )
+            handle_lifecycle_command(
+                "state active current implementation work",
+                self._channel(),
+                self._mapped_lookup_packet(),
+                options,
+            )
+
+            result = handle_lifecycle_command(
+                "state active current implementation work",
+                self._channel(),
+                self._mapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 13, 0, tzinfo=timezone.utc),
+                    registry_path=Path(tmp) / "data" / "channel-lifecycle-state.json",
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(result["before"]["state"], "active")
+            self.assertEqual(result["before"]["reason"], "current implementation work")
+            self.assertEqual(result["after"]["state"], "active")
+            self.assertEqual(result["after"]["reason"], "current implementation work")
+            self.assertEqual(result["after"]["since"], "2026-07-10")
+            self.assertEqual(result["after"]["updated_at"], "2026-07-10T13:00:00+00:00")
+            self.assertEqual(
+                format_state_write_confirmation(result),
+                "\n".join(
+                    [
+                        "State unchanged: `active`",
+                        "Reason: current implementation work",
+                        "Stored: mapped project `LIFECYCLE_STATE.md`",
+                        "Project commit required.",
+                    ]
+                ),
+            )
+
+    def test_repeated_unmapped_state_command_reports_unchanged_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+            options = LifecycleWorkflowOptions(
+                actor="Example Operator",
+                now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                registry_path=registry_path,
+                workspace_root=tmp,
+            )
+            handle_lifecycle_command(
+                "state paused until Friday",
+                self._channel(),
+                self._unmapped_lookup_packet(),
+                options,
+            )
+
+            result = handle_lifecycle_command(
+                "state paused until Friday",
+                self._channel(),
+                self._unmapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 13, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(result["before"]["state"], "paused")
+            self.assertEqual(result["before"]["reason"], "until Friday")
+            self.assertEqual(result["after"]["state"], "paused")
+            self.assertEqual(result["after"]["reason"], "until Friday")
+            self.assertEqual(result["after"]["since"], "2026-07-10")
+            self.assertEqual(result["after"]["updated_at"], "2026-07-10T13:00:00+00:00")
+            self.assertEqual(
+                format_state_write_confirmation(result),
+                "\n".join(
+                    [
+                        "State unchanged: `paused`",
+                        "Reason: until Friday",
+                        "Stored: channel-local registry",
+                    ]
+                ),
+            )
+
     def _init_project(self, tmp: str, name: str) -> Path:
         project = Path(tmp) / "projects" / name
         project.mkdir(parents=True)
