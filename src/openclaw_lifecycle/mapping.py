@@ -30,11 +30,13 @@ def resolve_safe_project_mapping(
     channel_index: Mapping[str, Any],
     workspace_root: str | Path | None = None,
 ) -> SafeProjectMapping | None:
-    """Resolve a safe project mapping by exact Discord channel id.
+    """Validate supplied mapping data by exact Discord channel id.
 
-    Returns `None` when the current channel is known but unmapped. Raises when
-    the mapping is ambiguous or points outside the expected project folder
-    namespace.
+    This helper does not perform runtime lookup. A Discord adapter should use
+    OpenClaw `channel_lookup`, normalize that result into a structured mapping
+    packet, and then call this package-level safety check. Returns `None` when
+    the current channel is known but unmapped. Raises when the mapping is
+    ambiguous or points outside the expected project folder namespace.
     """
 
     matches = _exact_channel_matches(channel.channel_id, channel_index)
