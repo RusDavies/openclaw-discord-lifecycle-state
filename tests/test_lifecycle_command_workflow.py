@@ -177,6 +177,60 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                 ),
             )
 
+    def test_unmapped_channel_status_command_reads_registry_entry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+            self._write_registry(registry_path, state="paused", reason="until Friday")
+            result = handle_lifecycle_command(
+                "state status",
+                self._channel(),
+                self._unmapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(result["source_type"], "channel-local-registry")
+            self.assertEqual(result["operation"], "read-status")
+            self.assertEqual(result["command"], {"type": "status", "raw": "state status"})
+            self.assertEqual(result["after"]["state"], "paused")
+            self.assertEqual(result["after"]["reason"], "until Friday")
+            self.assertEqual(result["after"]["since"], "2026-07-10")
+            self.assertEqual(result["commit_required"], False)
+            self.assertEqual(result["target_paths"], [str(registry_path)])
+
+    def test_unmapped_channel_status_command_formats_response(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+            self._write_registry(registry_path, state="spike", reason="testing options")
+            result = handle_lifecycle_command(
+                "state",
+                self._channel(),
+                self._unmapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(
+                format_state_status_response(result),
+                "\n".join(
+                    [
+                        "State: `spike`",
+                        "Reason: testing options",
+                        "Since: 2026-07-10",
+                        "Updated: 2026-07-10T12:00:00+00:00",
+                        "Source: channel-local registry",
+                    ]
+                ),
+            )
+
     def _init_project(self, tmp: str, name: str) -> Path:
         project = Path(tmp) / "projects" / name
         project.mkdir(parents=True)
@@ -198,6 +252,31 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                     "updated_at: 2026-07-10T12:00:00+00:00",
                     "",
                 ]
+            ),
+            encoding="utf-8",
+        )
+
+    def _write_registry(self, registry_path: Path, *, state: str, reason: str) -> None:
+        registry_path.parent.mkdir(parents=True)
+        registry_path.write_text(
+            json.dumps(
+                {
+                    "schema": "openclaw.lifecycle.channel_registry.v1",
+                    "version": 1,
+                    "updated_at": "2026-07-10T12:00:00+00:00",
+                    "channels": {
+                        "111111111111111111": {
+                            "channel_id": "111111111111111111",
+                            "state": state,
+                            "since": "2026-07-10",
+                            "updated_at": "2026-07-10T12:00:00+00:00",
+                            "updated_by": "Lifecycle Bot",
+                            "reason": reason,
+                            "source": "discord-command",
+                            "mapping_status": "unmapped",
+                        }
+                    },
+                }
             ),
             encoding="utf-8",
         )
