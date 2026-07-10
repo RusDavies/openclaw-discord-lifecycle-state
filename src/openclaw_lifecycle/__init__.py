@@ -25,6 +25,12 @@ from .discord_response import (
     format_state_status_response,
     format_state_write_confirmation,
 )
+from .discord_runtime import (
+    DiscordRuntimeAdapterError,
+    DiscordRuntimeOptions,
+    handle_discord_state_command,
+    normalize_channel_lookup_response,
+)
 from .mapping import (
     ProjectMappingError,
     SafeProjectMapping,
@@ -64,6 +70,8 @@ __all__ = [
     "ChannelRegistryStateError",
     "ChannelRegistryWriteOptions",
     "CurrentChannelContext",
+    "DiscordRuntimeAdapterError",
+    "DiscordRuntimeOptions",
     "LifecycleCommand",
     "LifecycleCommandError",
     "LifecycleResponseError",
@@ -80,6 +88,7 @@ __all__ = [
     "format_lifecycle_command_error",
     "format_state_status_response",
     "format_state_write_confirmation",
+    "handle_discord_state_command",
     "handle_lifecycle_command",
     "is_valid_state",
     "parse_lifecycle_command",
@@ -88,6 +97,7 @@ __all__ = [
     "read_channel_registry_lifecycle_state",
     "read_lifecycle_state",
     "read_mapped_project_lifecycle_state",
+    "normalize_channel_lookup_response",
     "resolve_channel_lookup_packet",
     "resolve_current_channel_context",
     "resolve_safe_project_mapping",
