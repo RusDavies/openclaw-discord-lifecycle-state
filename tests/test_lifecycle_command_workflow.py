@@ -7,7 +7,9 @@ from pathlib import Path
 
 from openclaw_lifecycle import (
     CurrentChannelContext,
+    LifecycleCommandError,
     LifecycleWorkflowOptions,
+    format_lifecycle_command_error,
     format_state_status_response,
     format_state_write_confirmation,
     handle_lifecycle_command,
@@ -227,6 +229,52 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                         "Since: 2026-07-10",
                         "Updated: 2026-07-10T12:00:00+00:00",
                         "Source: channel-local registry",
+                    ]
+                ),
+            )
+
+    def test_invalid_state_command_is_rejected_before_storage_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+
+            with self.assertRaises(LifecycleCommandError) as caught:
+                handle_lifecycle_command(
+                    "state waiting on vendor",
+                    self._channel(),
+                    self._unmapped_lookup_packet(),
+                    LifecycleWorkflowOptions(
+                        actor="Example Operator",
+                        now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                        registry_path=registry_path,
+                        workspace_root=tmp,
+                    ),
+                )
+
+            self.assertIn("Invalid lifecycle state 'waiting'", str(caught.exception))
+            self.assertFalse(registry_path.exists())
+
+    def test_invalid_state_command_formats_visible_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(LifecycleCommandError) as caught:
+                handle_lifecycle_command(
+                    "state waiting on vendor",
+                    self._channel(),
+                    self._unmapped_lookup_packet(),
+                    LifecycleWorkflowOptions(
+                        actor="Example Operator",
+                        now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                        registry_path=Path(tmp) / "data" / "channel-lifecycle-state.json",
+                        workspace_root=tmp,
+                    ),
+                )
+
+            self.assertEqual(
+                format_lifecycle_command_error(caught.exception),
+                "\n".join(
+                    [
+                        "Invalid lifecycle state 'waiting'.",
+                        "Allowed states: `active`, `paused`, `blocked`, "
+                        "`pending-approval`, `ktlo`, `spike`, `archived`",
                     ]
                 ),
             )
