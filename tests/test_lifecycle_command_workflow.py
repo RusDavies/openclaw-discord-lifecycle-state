@@ -1,6 +1,7 @@
 import subprocess
 import tempfile
 import unittest
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -69,6 +70,58 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                 ),
             )
 
+    def test_unmapped_channel_write_command_updates_registry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+            result = handle_lifecycle_command(
+                "state paused until Friday",
+                self._channel(),
+                self._unmapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                ),
+            )
+
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            entry = registry["channels"]["111111111111111111"]
+            self.assertEqual(result["source_type"], "channel-local-registry")
+            self.assertEqual(result["operation"], "write-state")
+            self.assertEqual(result["command"]["raw"], "state paused until Friday")
+            self.assertEqual(result["after"]["state"], "paused")
+            self.assertEqual(result["after"]["reason"], "until Friday")
+            self.assertEqual(result["commit_required"], False)
+            self.assertEqual(entry["state"], "paused")
+            self.assertEqual(entry["reason"], "until Friday")
+            self.assertEqual(entry["mapping_status"], "unmapped")
+
+    def test_unmapped_channel_write_command_formats_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = handle_lifecycle_command(
+                "state paused until Friday",
+                self._channel(),
+                self._unmapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=Path(tmp) / "data" / "channel-lifecycle-state.json",
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(
+                format_state_write_confirmation(result),
+                "\n".join(
+                    [
+                        "State updated: `paused`",
+                        "Reason: until Friday",
+                        "Stored: channel-local registry",
+                    ]
+                ),
+            )
+
     def _init_project(self, tmp: str, name: str) -> Path:
         project = Path(tmp) / "projects" / name
         project.mkdir(parents=True)
@@ -93,6 +146,13 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                 "project_folder": "projects/example",
                 "github_remotes": ["example/example"],
             },
+        }
+
+    def _unmapped_lookup_packet(self) -> dict:
+        return {
+            "schema": "openclaw.lifecycle.channel_lookup_adapter.v1",
+            "status": "unmapped",
+            "channel_id": "111111111111111111",
         }
 
 
