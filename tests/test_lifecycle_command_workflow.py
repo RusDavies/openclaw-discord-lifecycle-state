@@ -9,6 +9,7 @@ from openclaw_lifecycle import (
     CurrentChannelContext,
     LifecycleCommandError,
     LifecycleWorkflowOptions,
+    MappedProjectStateError,
     format_lifecycle_command_error,
     format_state_status_response,
     format_state_write_confirmation,
@@ -369,6 +370,54 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                     ]
                 ),
             )
+
+    def test_mapped_write_command_rejects_project_outside_its_git_boundary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            project = root / "projects" / "example"
+            project.mkdir(parents=True)
+            registry_path = root / "data" / "channel-lifecycle-state.json"
+
+            with self.assertRaises(MappedProjectStateError) as caught:
+                handle_lifecycle_command(
+                    "state active current implementation work",
+                    self._channel(),
+                    self._mapped_lookup_packet(),
+                    LifecycleWorkflowOptions(
+                        actor="Example Operator",
+                        now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                        registry_path=registry_path,
+                        workspace_root=tmp,
+                    ),
+                )
+
+            self.assertIn("expected", str(caught.exception))
+            self.assertFalse((project / "LIFECYCLE_STATE.md").exists())
+            self.assertFalse(registry_path.exists())
+
+    def test_mapped_status_command_rejects_project_outside_its_git_boundary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            project = root / "projects" / "example"
+            project.mkdir(parents=True)
+            self._write_state_file(project, "active", "current implementation work")
+
+            with self.assertRaises(MappedProjectStateError) as caught:
+                handle_lifecycle_command(
+                    "state status",
+                    self._channel(),
+                    self._mapped_lookup_packet(),
+                    LifecycleWorkflowOptions(
+                        actor="Example Operator",
+                        now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                        registry_path=root / "data" / "channel-lifecycle-state.json",
+                        workspace_root=tmp,
+                    ),
+                )
+
+            self.assertIn("expected", str(caught.exception))
 
     def _init_project(self, tmp: str, name: str) -> Path:
         project = Path(tmp) / "projects" / name
