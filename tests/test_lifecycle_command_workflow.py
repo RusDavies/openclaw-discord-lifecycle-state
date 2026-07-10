@@ -1,13 +1,14 @@
+import json
 import subprocess
 import tempfile
 import unittest
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
 from openclaw_lifecycle import (
     CurrentChannelContext,
     LifecycleWorkflowOptions,
+    format_state_status_response,
     format_state_write_confirmation,
     handle_lifecycle_command,
 )
@@ -122,11 +123,84 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                 ),
             )
 
+    def test_mapped_channel_status_command_reads_project_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._init_project(tmp, "example")
+            self._write_state_file(project, "blocked", "waiting on credentials")
+            result = handle_lifecycle_command(
+                "state status",
+                self._channel(),
+                self._mapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=Path(tmp) / "data" / "channel-lifecycle-state.json",
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(result["source_type"], "mapped-project")
+            self.assertEqual(result["operation"], "read-status")
+            self.assertEqual(result["command"], {"type": "status", "raw": "state status"})
+            self.assertEqual(result["after"]["state"], "blocked")
+            self.assertEqual(result["after"]["reason"], "waiting on credentials")
+            self.assertEqual(result["after"]["since"], "2026-07-10")
+            self.assertEqual(result["commit_required"], False)
+            self.assertEqual(result["target_paths"], [str(project / "LIFECYCLE_STATE.md")])
+
+    def test_mapped_channel_status_command_formats_response(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._init_project(tmp, "example")
+            self._write_state_file(project, "ktlo", "routine maintenance")
+            result = handle_lifecycle_command(
+                "state",
+                self._channel(),
+                self._mapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=Path(tmp) / "data" / "channel-lifecycle-state.json",
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(
+                format_state_status_response(result),
+                "\n".join(
+                    [
+                        "State: `ktlo`",
+                        "Reason: routine maintenance",
+                        "Since: 2026-07-10",
+                        "Updated: 2026-07-10T12:00:00+00:00",
+                        "Source: mapped project `LIFECYCLE_STATE.md`",
+                    ]
+                ),
+            )
+
     def _init_project(self, tmp: str, name: str) -> Path:
         project = Path(tmp) / "projects" / name
         project.mkdir(parents=True)
         subprocess.run(["git", "init"], cwd=project, check=True, capture_output=True)
         return project.resolve()
+
+    def _write_state_file(self, project: Path, state: str, reason: str) -> None:
+        (project / "LIFECYCLE_STATE.md").write_text(
+            "\n".join(
+                [
+                    "# Lifecycle State",
+                    "",
+                    f"state: {state}",
+                    "since: 2026-07-10",
+                    'channel_id: "111111111111111111"',
+                    'updated_by: "Lifecycle Bot"',
+                    f'reason: "{reason}"',
+                    "source: discord-command",
+                    "updated_at: 2026-07-10T12:00:00+00:00",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
 
     def _channel(self) -> CurrentChannelContext:
         return CurrentChannelContext(
