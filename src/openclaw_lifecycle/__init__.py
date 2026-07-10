@@ -9,6 +9,11 @@ from .commands import (
     parse_state_set_command,
     parse_state_status_command,
 )
+from .context import (
+    ChannelContextError,
+    CurrentChannelContext,
+    resolve_current_channel_context,
+)
 from .state import (
     ALLOWED_STATES,
     LifecycleStateError,
@@ -19,6 +24,8 @@ from .state import (
 
 __all__ = [
     "ALLOWED_STATES",
+    "ChannelContextError",
+    "CurrentChannelContext",
     "LifecycleCommand",
     "LifecycleCommandError",
     "LifecycleStateError",
@@ -29,5 +36,6 @@ __all__ = [
     "parse_lifecycle_command",
     "parse_state_set_command",
     "parse_state_status_command",
+    "resolve_current_channel_context",
     "validate_state",
 ]
