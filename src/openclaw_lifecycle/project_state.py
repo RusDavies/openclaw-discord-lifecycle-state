@@ -227,11 +227,11 @@ def _read_state_file(path: Path) -> dict[str, str]:
         if ":" not in line:
             continue
         key, value = line.split(":", 1)
-        key = key.strip()
+        key = key.strip().casefold().replace(" ", "_")
         if key:
             fields[key] = _unquote(value.strip())
     if "state" in fields:
-        validate_state(fields["state"])
+        fields["state"] = validate_state(fields["state"].casefold())
     return fields
 
 
@@ -255,10 +255,10 @@ def _write_state_file(path: Path, fields: Mapping[str, str]) -> None:
 
 
 def _snapshot(fields: Mapping[str, str]) -> dict[str, str] | None:
-    if not fields:
+    if not fields or not fields.get("state"):
         return None
     snapshot = {
-        "state": validate_state(fields.get("state", "")),
+        "state": validate_state(fields["state"].casefold()),
         "reason": fields.get("reason", ""),
         "source": fields.get("source", ""),
     }

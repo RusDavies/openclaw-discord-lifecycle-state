@@ -34,6 +34,61 @@ class LifecycleStatusReadTests(unittest.TestCase):
             self.assertEqual(result["after"]["reason"], "waiting on credentials")
             self.assertEqual(result["commit_required"], False)
 
+    def test_reads_legacy_title_case_mapped_project_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._init_project(tmp, "example")
+            (project / "LIFECYCLE_STATE.md").write_text(
+                "\n".join(
+                    [
+                        "# Lifecycle State",
+                        "",
+                        "State: active",
+                        "Reason: Existing project file",
+                        "Updated: 2026-07-09",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = read_mapped_project_lifecycle_state(
+                self._channel(),
+                self._mapping(project),
+                StateStatusCommand(),
+                raw_command="State",
+            )
+
+            self.assertEqual(result["after"]["state"], "active")
+            self.assertEqual(result["after"]["reason"], "Existing project file")
+
+    def test_mapped_project_file_without_state_returns_empty_status_packet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._init_project(tmp, "example")
+            (project / "LIFECYCLE_STATE.md").write_text(
+                "\n".join(
+                    [
+                        "# Lifecycle State",
+                        "",
+                        "Reason: Existing project file",
+                        "Updated: 2026-07-09",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = read_mapped_project_lifecycle_state(
+                self._channel(),
+                self._mapping(project),
+                StateStatusCommand(),
+                raw_command="State",
+            )
+
+            self.assertEqual(result["source_type"], "mapped-project")
+            self.assertIsNone(result["after"])
+            self.assertEqual(result["verification"][2]["check"], "state_read")
+            self.assertTrue(result["verification"][2]["ok"])
+
     def test_reads_registry_state(self):
         with tempfile.TemporaryDirectory() as tmp:
             registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
