@@ -34,6 +34,7 @@ class LifecycleWorkflowOptions:
     now: datetime
     registry_path: str | Path
     workspace_root: str | Path | None = None
+    dry_run: bool = False
 
 
 def handle_lifecycle_command(
@@ -65,6 +66,7 @@ def handle_lifecycle_command(
                     actor=options.actor,
                     now=options.now,
                     raw_command=raw_command,
+                    dry_run=options.dry_run,
                 ),
             )
         return write_channel_registry_lifecycle_state(
@@ -75,6 +77,7 @@ def handle_lifecycle_command(
                 actor=options.actor,
                 now=options.now,
                 raw_command=raw_command,
+                dry_run=options.dry_run,
             ),
         )
 

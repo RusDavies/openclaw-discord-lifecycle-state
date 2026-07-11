@@ -126,6 +126,43 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                 ),
             )
 
+    def test_dry_run_write_commands_do_not_persist_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._init_project(tmp, "example")
+            registry_path = Path(tmp) / "data" / "channel-lifecycle-state.json"
+
+            mapped_result = handle_lifecycle_command(
+                "state blocked waiting on credentials",
+                self._channel(),
+                self._mapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                    dry_run=True,
+                ),
+            )
+            unmapped_result = handle_lifecycle_command(
+                "state paused until Friday",
+                self._channel(),
+                self._unmapped_lookup_packet(),
+                LifecycleWorkflowOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 10, 12, 0, tzinfo=timezone.utc),
+                    registry_path=registry_path,
+                    workspace_root=tmp,
+                    dry_run=True,
+                ),
+            )
+
+            self.assertEqual(mapped_result["source_type"], "mapped-project")
+            self.assertEqual(unmapped_result["source_type"], "channel-local-registry")
+            self.assertFalse((project / "LIFECYCLE_STATE.md").exists())
+            self.assertFalse(registry_path.exists())
+            self.assertEqual(format_state_write_confirmation(mapped_result).splitlines()[0], "State would be: `blocked`")
+            self.assertEqual(format_state_write_confirmation(unmapped_result).splitlines()[0], "State would be: `paused`")
+
     def test_mapped_channel_status_command_reads_project_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = self._init_project(tmp, "example")
