@@ -43,6 +43,7 @@
         "active",
         "paused",
         "blocked",
+        "incident",
         "pending-approval",
         "ktlo",
         "spike",

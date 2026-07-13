@@ -6,6 +6,7 @@ ALLOWED_STATES: tuple[str, ...] = (
     "active",
     "paused",
     "blocked",
+    "incident",
     "pending-approval",
     "ktlo",
     "spike",

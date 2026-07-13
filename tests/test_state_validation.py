@@ -41,7 +41,7 @@ class LifecycleStateValidationTests(unittest.TestCase):
     def test_allowed_states_text_is_stable(self):
         self.assertEqual(
             allowed_states_text(),
-            "active, paused, blocked, pending-approval, ktlo, spike, archived",
+            "active, paused, blocked, incident, pending-approval, ktlo, spike, archived",
         )
 
 
