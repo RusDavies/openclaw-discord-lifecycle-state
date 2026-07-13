@@ -312,7 +312,7 @@ class LifecycleCommandWorkflowTests(unittest.TestCase):
                     [
                         "Invalid lifecycle state 'waiting'.",
                         "Allowed states: `active`, `paused`, `blocked`, "
-                        "`pending-approval`, `ktlo`, `spike`, `archived`",
+                        "`incident`, `pending-approval`, `ktlo`, `spike`, `archived`",
                     ]
                 ),
             )

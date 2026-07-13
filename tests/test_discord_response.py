@@ -241,7 +241,7 @@ class DiscordResponseFormattingTests(unittest.TestCase):
                 [
                     "Invalid lifecycle state 'waiting'.",
                     "Allowed states: `active`, `paused`, `blocked`, "
-                    "`pending-approval`, `ktlo`, `spike`, `archived`",
+                    "`incident`, `pending-approval`, `ktlo`, `spike`, `archived`",
                 ]
             ),
         )
@@ -257,7 +257,7 @@ class DiscordResponseFormattingTests(unittest.TestCase):
                 [
                     "Expected lifecycle state after `state`",
                     "Allowed states: `active`, `paused`, `blocked`, "
-                    "`pending-approval`, `ktlo`, `spike`, `archived`",
+                    "`incident`, `pending-approval`, `ktlo`, `spike`, `archived`",
                 ]
             ),
         )

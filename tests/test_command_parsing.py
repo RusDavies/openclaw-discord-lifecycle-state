@@ -25,6 +25,12 @@ class StateSetCommandParsingTests(unittest.TestCase):
             StateSetCommand(state="blocked", reason="waiting on credentials"),
         )
 
+    def test_parse_incident_state_command(self):
+        self.assertEqual(
+            parse_state_set_command("state incident database outage"),
+            StateSetCommand(state="incident", reason="database outage"),
+        )
+
     def test_parse_collapses_reason_whitespace(self):
         self.assertEqual(
             parse_state_set_command("state paused  until\n\nFriday"),
