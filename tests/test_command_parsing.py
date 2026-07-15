@@ -2,11 +2,13 @@ import unittest
 
 from openclaw_lifecycle import (
     LifecycleCommandError,
+    MapProjectHereCommand,
     StateSetCommand,
     StateStatusCommand,
 )
 from openclaw_lifecycle.commands import (
     parse_lifecycle_command,
+    parse_map_project_here_command,
     parse_state_set_command,
     parse_state_status_command,
 )
@@ -135,6 +137,24 @@ class LifecycleCommandParsingTests(unittest.TestCase):
             parse_lifecycle_command("state blocked waiting"),
             StateSetCommand(state="blocked", reason="waiting"),
         )
+
+
+class MapProjectHereCommandParsingTests(unittest.TestCase):
+    def test_parse_map_project_here_with_project_folder(self):
+        self.assertEqual(
+            parse_map_project_here_command("map project here projects/demo"),
+            MapProjectHereCommand(project="projects/demo"),
+        )
+
+    def test_parse_map_project_here_collapses_whitespace(self):
+        self.assertEqual(
+            parse_map_project_here_command("  map project here   `demo project`  "),
+            MapProjectHereCommand(project="demo project"),
+        )
+
+    def test_parse_map_project_here_rejects_wrong_command(self):
+        with self.assertRaises(LifecycleCommandError):
+            parse_map_project_here_command("map here projects/demo")
 
 
 if __name__ == "__main__":

@@ -43,7 +43,32 @@ class StateStatusCommand:
     """Parsed `state` / `state status` command."""
 
 
+@dataclass(frozen=True)
+class MapProjectHereCommand:
+    """Parsed `map project here <project>` command."""
+
+    project: str
+
+
 LifecycleCommand = StateSetCommand | StateStatusCommand
+ProjectMappingCommand = MapProjectHereCommand
+
+_MAP_PROJECT_HERE_PATTERN = re.compile(
+    r"""
+    \A
+    \s*
+    map
+    \s+
+    project
+    \s+
+    here
+    \s+
+    (?P<project>.+?)
+    \s*
+    \Z
+    """,
+    re.IGNORECASE | re.VERBOSE | re.DOTALL,
+)
 
 
 def parse_lifecycle_command(value: str) -> LifecycleCommand:
@@ -86,6 +111,23 @@ def parse_state_set_command(value: str) -> StateSetCommand:
         raise LifecycleCommandError(str(error)) from error
 
     return StateSetCommand(state=state, reason=_normalize_reason(raw_reason))
+
+
+def parse_map_project_here_command(value: str) -> MapProjectHereCommand:
+    """Parse `map project here <project>` into a mapping command."""
+
+    if not isinstance(value, str):
+        raise LifecycleCommandError("Lifecycle command must be a string")
+
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    match = _MAP_PROJECT_HERE_PATTERN.match(normalized)
+    if not match:
+        raise LifecycleCommandError("Expected `map project here <project>`")
+
+    project = " ".join(match.group("project").strip().strip("`'\"").split())
+    if not project:
+        raise LifecycleCommandError("Expected project after `map project here`")
+    return MapProjectHereCommand(project=project)
 
 
 def _extract_state_command_body(value: str) -> str:
