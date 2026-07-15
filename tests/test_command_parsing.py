@@ -3,12 +3,14 @@ import unittest
 from openclaw_lifecycle import (
     LifecycleCommandError,
     MapProjectHereCommand,
+    MigrateStateHereCommand,
     StateSetCommand,
     StateStatusCommand,
 )
 from openclaw_lifecycle.commands import (
     parse_lifecycle_command,
     parse_map_project_here_command,
+    parse_migrate_state_here_command,
     parse_state_set_command,
     parse_state_status_command,
 )
@@ -155,6 +157,24 @@ class MapProjectHereCommandParsingTests(unittest.TestCase):
     def test_parse_map_project_here_rejects_wrong_command(self):
         with self.assertRaises(LifecycleCommandError):
             parse_map_project_here_command("map here projects/demo")
+
+
+class MigrateStateHereCommandParsingTests(unittest.TestCase):
+    def test_parse_migrate_state_here(self):
+        self.assertEqual(
+            parse_migrate_state_here_command("migrate state here"),
+            MigrateStateHereCommand(),
+        )
+
+    def test_parse_migrate_lifecycle_state_here(self):
+        self.assertEqual(
+            parse_migrate_state_here_command("migrate lifecycle state here"),
+            MigrateStateHereCommand(),
+        )
+
+    def test_parse_migrate_state_here_rejects_extra_text(self):
+        with self.assertRaises(LifecycleCommandError):
+            parse_migrate_state_here_command("migrate state here please")
 
 
 if __name__ == "__main__":
