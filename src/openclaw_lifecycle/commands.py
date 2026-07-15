@@ -50,8 +50,14 @@ class MapProjectHereCommand:
     project: str
 
 
+@dataclass(frozen=True)
+class MigrateStateHereCommand:
+    """Parsed `migrate state here` command."""
+
+
 LifecycleCommand = StateSetCommand | StateStatusCommand
 ProjectMappingCommand = MapProjectHereCommand
+ProjectMigrationCommand = MigrateStateHereCommand
 
 _MAP_PROJECT_HERE_PATTERN = re.compile(
     r"""
@@ -68,6 +74,24 @@ _MAP_PROJECT_HERE_PATTERN = re.compile(
     \Z
     """,
     re.IGNORECASE | re.VERBOSE | re.DOTALL,
+)
+_MIGRATE_STATE_HERE_PATTERN = re.compile(
+    r"""
+    \A
+    \s*
+    migrate
+    \s+
+    (?:
+        lifecycle
+        \s+
+    )?
+    state
+    \s+
+    here
+    \s*
+    \Z
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 
@@ -128,6 +152,18 @@ def parse_map_project_here_command(value: str) -> MapProjectHereCommand:
     if not project:
         raise LifecycleCommandError("Expected project after `map project here`")
     return MapProjectHereCommand(project=project)
+
+
+def parse_migrate_state_here_command(value: str) -> MigrateStateHereCommand:
+    """Parse `migrate state here` into a migration command."""
+
+    if not isinstance(value, str):
+        raise LifecycleCommandError("Lifecycle command must be a string")
+
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    if not _MIGRATE_STATE_HERE_PATTERN.match(normalized):
+        raise LifecycleCommandError("Expected `migrate state here`")
+    return MigrateStateHereCommand()
 
 
 def _extract_state_command_body(value: str) -> str:
