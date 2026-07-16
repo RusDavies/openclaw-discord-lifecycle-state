@@ -1,4 +1,4 @@
-# OpenClaw Project Lifecycle State
+# OpenClaw Discord Lifecycle State
 
 Small Python helpers for recording and reading lifecycle state for Discord-backed
 OpenClaw project channels.

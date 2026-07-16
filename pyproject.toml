@@ -3,7 +3,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openclaw-project-lifecycle-state"
+name = "openclaw-discord-lifecycle-state"
 version = "0.1.0"
 description = "Lifecycle state helpers for Discord-backed OpenClaw project channels"
 readme = "README.md"
