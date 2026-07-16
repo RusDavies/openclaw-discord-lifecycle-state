@@ -9,12 +9,19 @@ from pathlib import Path
 import re
 from typing import Any
 
+from .adapter import resolve_channel_lookup_packet
 from .commands import LifecycleCommandError
 from .context import CurrentChannelContext, resolve_current_channel_context
 from .discord_response import (
     format_lifecycle_command_error,
     format_state_status_response,
     format_state_write_confirmation,
+)
+from .pinned_status import (
+    PinnedStatusApplyCallables,
+    PinnedStatusProjectionOptions,
+    format_pinned_status_projection_response,
+    handle_pinned_status_projection,
 )
 from .workflow import LifecycleWorkflowOptions, handle_lifecycle_command
 
@@ -71,6 +78,77 @@ def handle_discord_state_command(
             ),
         )
         message = _format_success(result)
+        send_receipt = send_message(message)
+        return {
+            "schema": _SCHEMA,
+            "ok": True,
+            "channel": _channel_packet(channel),
+            "lookup_packet": lookup_packet,
+            "message": message,
+            "send_receipt": send_receipt,
+            "result": result,
+            "error": "",
+        }
+    except Exception as error:
+        message = _format_error(error)
+        send_receipt = send_message(message)
+        return {
+            "schema": _SCHEMA,
+            "ok": False,
+            "channel": _channel_packet(channel),
+            "lookup_packet": lookup_packet,
+            "message": message,
+            "send_receipt": send_receipt,
+            "result": None,
+            "error": str(error),
+        }
+
+
+def handle_discord_pin_lifecycle_status_command(
+    raw_command: str,
+    conversation_info: Mapping[str, Any],
+    channel_metadata: Mapping[str, Any] | None,
+    channel_lookup: Callable[[str], Mapping[str, Any]],
+    send_message: Callable[[str], Any],
+    options: DiscordRuntimeOptions,
+    *,
+    apply_callables: PinnedStatusApplyCallables | None = None,
+    dry_run: bool = True,
+) -> dict[str, Any]:
+    """Run the explicit pinned lifecycle status projection command."""
+
+    channel = resolve_current_channel_context(conversation_info, channel_metadata)
+    lookup_packet: dict[str, Any] | None = None
+    try:
+        lookup_packet = normalize_channel_lookup_response(
+            channel,
+            channel_lookup(channel.channel_id),
+        )
+        lookup = resolve_channel_lookup_packet(
+            channel,
+            lookup_packet,
+            workspace_root=options.workspace_root,
+        )
+        if lookup.status in {"ambiguous", "error"}:
+            raise DiscordRuntimeAdapterError(
+                f"Cannot safely resolve lifecycle storage source: {lookup.status}"
+            )
+        result = handle_pinned_status_projection(
+            channel,
+            lookup.mapping,
+            Path(options.registry_path).with_name("lifecycle-pinned-status-messages.json"),
+            PinnedStatusProjectionOptions(
+                now=options.now,
+                registry_path=Path(options.registry_path).with_name(
+                    "lifecycle-pinned-status-messages.json"
+                ),
+                workspace_root=options.workspace_root,
+                raw_command=raw_command,
+                dry_run=dry_run,
+            ),
+            apply_callables=apply_callables,
+        )
+        message = format_pinned_status_projection_response(result)
         send_receipt = send_message(message)
         return {
             "schema": _SCHEMA,
