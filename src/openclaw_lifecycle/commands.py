@@ -55,9 +55,17 @@ class MigrateStateHereCommand:
     """Parsed `migrate state here` command."""
 
 
+@dataclass(frozen=True)
+class PinLifecycleStatusCommand:
+    """Parsed pinned lifecycle status projection command."""
+
+    apply: bool
+
+
 LifecycleCommand = StateSetCommand | StateStatusCommand
 ProjectMappingCommand = MapProjectHereCommand
 ProjectMigrationCommand = MigrateStateHereCommand
+ProjectionCommand = PinLifecycleStatusCommand
 
 _MAP_PROJECT_HERE_PATTERN = re.compile(
     r"""
@@ -88,6 +96,32 @@ _MIGRATE_STATE_HERE_PATTERN = re.compile(
     state
     \s+
     here
+    \s*
+    \Z
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+_PIN_LIFECYCLE_STATUS_PATTERN = re.compile(
+    r"""
+    \A
+    \s*
+    (?:
+        pin
+        \s+
+        lifecycle
+        \s+
+        status
+      |
+        lifecycle
+        \s+
+        status
+        \s+
+        pin
+    )
+    (?:
+        \s+
+        (?P<mode>dry[-\s]?run|plan|apply)
+    )?
     \s*
     \Z
     """,
@@ -164,6 +198,24 @@ def parse_migrate_state_here_command(value: str) -> MigrateStateHereCommand:
     if not _MIGRATE_STATE_HERE_PATTERN.match(normalized):
         raise LifecycleCommandError("Expected `migrate state here`")
     return MigrateStateHereCommand()
+
+
+def parse_pin_lifecycle_status_command(value: str) -> PinLifecycleStatusCommand:
+    """Parse an explicit pinned lifecycle status projection command."""
+
+    if not isinstance(value, str):
+        raise LifecycleCommandError("Lifecycle command must be a string")
+
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    match = _PIN_LIFECYCLE_STATUS_PATTERN.match(normalized)
+    if not match:
+        raise LifecycleCommandError(
+            "Expected `pin lifecycle status dry-run` or `pin lifecycle status apply`"
+        )
+
+    mode = " ".join((match.group("mode") or "dry-run").lower().split())
+    mode = mode.replace(" ", "-")
+    return PinLifecycleStatusCommand(apply=mode == "apply")
 
 
 def _extract_state_command_body(value: str) -> str:

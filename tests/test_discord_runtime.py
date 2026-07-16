@@ -8,6 +8,7 @@ from pathlib import Path
 from openclaw_lifecycle import (
     CurrentChannelContext,
     DiscordRuntimeOptions,
+    handle_discord_pin_lifecycle_status_command,
     handle_discord_state_command,
     normalize_channel_lookup_response,
 )
@@ -187,6 +188,51 @@ class DiscordRuntimeAdapterTests(unittest.TestCase):
             self.assertEqual(
                 sent,
                 ["Cannot safely resolve lifecycle storage source: ambiguous"],
+            )
+
+    def test_runtime_pin_status_dry_run_sends_summary_without_discord_pin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "projects" / "openclaw-project-lifecycle-state"
+            project.mkdir(parents=True)
+            subprocess.run(["git", "init"], cwd=project, check=True, capture_output=True)
+            (project / "LIFECYCLE_STATE.md").write_text(
+                "\n".join(
+                    [
+                        "# Lifecycle State",
+                        "",
+                        "state: pending-approval",
+                        "since: 2026-07-10",
+                        'channel_id: "111111111111111111"',
+                        'updated_by: "Lifecycle Bot"',
+                        'reason: "Ready for review"',
+                        "source: discord-command",
+                        "updated_at: 2026-07-10T12:00:00+00:00",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            sent: list[str] = []
+
+            result = handle_discord_pin_lifecycle_status_command(
+                "pin lifecycle status dry-run",
+                self._conversation_info(),
+                self._channel_metadata(),
+                lambda channel_id: self._mapped_lookup_response(),
+                lambda message: sent.append(message) or {"sent": True},
+                DiscordRuntimeOptions(
+                    actor="Example Operator",
+                    now=datetime(2026, 7, 16, 10, 0, tzinfo=timezone.utc),
+                    registry_path=Path(tmp) / "data" / "channel-lifecycle-state.json",
+                    workspace_root=tmp,
+                ),
+            )
+
+            self.assertEqual(result["ok"], True)
+            self.assertIn("Pinned lifecycle status dry-run.", sent[0])
+            self.assertEqual(
+                [action["action"] for action in result["result"]["proposed_external_actions"]],
+                ["send", "pin"],
             )
 
     def _record_lookup(self, calls: list[str], channel_id: str, response: dict) -> dict:
