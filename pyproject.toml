@@ -8,9 +8,11 @@ version = "0.1.0"
 description = "Lifecycle state helpers for Discord-backed OpenClaw project channels"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
 authors = [{ name = "Russ Davies" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
 ]

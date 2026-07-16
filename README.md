@@ -25,4 +25,4 @@ PYTHONPATH=src python -m pytest tests -q
 
 ## License
 
-No open-source license has been selected yet.
+MIT.
