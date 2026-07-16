@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openclaw-project-lifecycle-state"
+version = "0.1.0"
+description = "Lifecycle state helpers for Discord-backed OpenClaw project channels"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Russ Davies" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
